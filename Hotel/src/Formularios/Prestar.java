@@ -98,27 +98,32 @@ public class Prestar extends javax.swing.JDialog {
         if (!jTextField_NomCli.getText().isEmpty()) {
             ConexionHotel cc = new ConexionHotel();
             Connection cn = cc.conectar();
-            String sql = "insert into cabecera_factura (FEC_FAC,CED_REC_FAC,CED_CLI_F,COD_HAB_FAC) values(?,?,?,?)";
-            String fec = "select sysdate from dual";
+            String cod=añadirHabitacion();
+            Double cos=0.0;
+            String sql = "insert into cabecera_factura (FEC_FAC,CED_REC_FAC,CED_CLI_F,COD_HAB_FAC,TOTAL) values(?,?,?,?,?)";
+            String costo = "select cos_hab from tipos_habitacion "
+                    + "where cod_tip=(select tip_hab_per "
+                    + "             from habitaciones "
+                    + "             where cod_hab='"+cod+"') ";
             try {
                 Statement st = cn.createStatement();
-                ResultSet rs = st.executeQuery(fec);
-                PreparedStatement psd = cn.prepareStatement(sql);
-                Date fecha=null;
+                ResultSet rs = st.executeQuery(costo);
                 while(rs.next()){
-                    fecha = rs.getDate(1);
+                    cos=rs.getDouble(1);
                 }
-                psd.setDate(1, fecha);
+                PreparedStatement psd = cn.prepareStatement(sql);
+                SimpleDateFormat formateador = new SimpleDateFormat("dd/MM/yy");
+                Calendar c = Calendar.getInstance();
+                
+                psd.setString(1, formateador.format(c.getTime()));
                 psd.setString(2, Principal.cedRec);
                 psd.setString(3, jTextField_CedCli.getText());
-                psd.setString(4, añadirHabitacion());
+                psd.setString(4, cod);
+                psd.setDouble(5, cos);
                 int n = psd.executeUpdate();
                 if (n > 0) {
                     JOptionPane.showMessageDialog(null, "Operación realizada correctamente");
                     this.dispose();
-                    Habitaciones1 h = new Habitaciones1(null, true);
-                    h.fecha.setEnabled(false);
-                    h.setVisible(true);
                     //new VerReservasCliente(null, true, jTextField_CedCli.getText()).setVisible(true);
                 }
             } catch (SQLException ex) {
@@ -149,7 +154,7 @@ public class Prestar extends javax.swing.JDialog {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("DATOS CLIENTE"));
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("DATOS CLIENTE - PRESTAR"));
 
         jLabel1.setText("Cédula:");
 

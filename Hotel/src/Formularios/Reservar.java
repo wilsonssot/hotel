@@ -131,7 +131,7 @@ public class Reservar extends javax.swing.JDialog {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("DATOS CLIENTE"));
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("DATOS CLIENTE - RESERVAR"));
 
         jLabel1.setText("Cédula:");
 
