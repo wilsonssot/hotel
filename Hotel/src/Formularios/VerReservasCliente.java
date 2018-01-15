@@ -68,7 +68,7 @@ public class VerReservasCliente extends javax.swing.JDialog {
                 + "where ced_cli_res ='" + jTextField_CedCli.getText() + "' "
                 + "and num_res IN (select num_res_per"
                 + "             from detalle_reserva"
-                + "             where fec_res_hab>sysdate)";
+                + "             where fec_lle>sysdate)";
         ConexionHotel cc = new ConexionHotel();
         Connection cn = cc.conectar();
         try {
@@ -84,8 +84,8 @@ public class VerReservasCliente extends javax.swing.JDialog {
     }
 
     public void llenarTabla() {
-        String[] titulos = {"HABITACIÓN", "FECHA RESERVA", "TIPO", "COSTO", "LLEGÓ"};
-        String[] registros = new String[5];
+        String[] titulos = {"HABITACIÓN", "FECHA LLEGADA","FECHA SALIDA", "TIPO", "COSTO", "LLEGÓ"};
+        String[] registros = new String[6];
         jTable_Reservas.getTableHeader().setReorderingAllowed(false);
         jTable_Reservas.getTableHeader().setResizingAllowed(false);
         modeloTabla = new DefaultTableModel(null, titulos) {
@@ -99,18 +99,17 @@ public class VerReservasCliente extends javax.swing.JDialog {
         Connection cn = cc.conectar();
         String sql1 = "select count(*) "
                 + "from detalle_reserva "
-                + "where num_res_per IN (select num_res "
-                + "from cabecera_reserva "
-                + "where ced_cli_res='" + jTextField_CedCli.getText() + "')";
+                + "where fec_lle>sysdate "
+                + "and num_res_per = "+ numeroReserva;
 
-        String sql = "select h.cod_hab,d.fec_res_hab,t.nom_tip,t.cos_hab,d.lle_cli,c.num_res,c.val_tot_res, c.abono, c.confirmado "
+        String sql = "select h.cod_hab cod,d.fec_lle fecl,d.fec_sal fecs,t.nom_tip tip,t.cos_hab cos,d.lle_cli lle,c.num_res num,c.val_tot_res val, c.abono abo, c.confirmado con "
                 + "from habitaciones h,detalle_reserva d,tipos_habitacion t,cabecera_reserva c,clientes cli "
                 + "where h.tip_hab_per=t.cod_tip "
-                + "and d.fec_res_hab>sysdate "
+                + "and d.fec_lle>sysdate "
                 + "and cli.ced_cli=c.ced_cli_res "
                 + "and h.cod_hab=d.cod_hab_res "
                 + "and c.num_res=d.num_res_per "
-                + "and c.num_res='" + numeroReserva + "'";
+                + "and c.num_res=" + numeroReserva;
 
         String sql2 = "select c.num_res,c.val_tot_res, c.abono, c.confirmado "
                 + "from cabecera_reserva c,clientes cli "
@@ -125,15 +124,16 @@ public class VerReservasCliente extends javax.swing.JDialog {
             if (num > 0) {
                 ResultSet rs = st.executeQuery(sql);
                 while (rs.next()) {
-                    registros[0] = rs.getString(1);
-                    registros[1] = rs.getString(2);
-                    registros[2] = rs.getString(3);
-                    registros[3] = String.valueOf(rs.getDouble(4));
-                    registros[4] = rs.getString(5);
-                    numeroReserva = rs.getInt(6);
-                    jTextField_total.setText(String.valueOf(rs.getDouble(7)));
-                    jTextField_abono.setText(String.valueOf(rs.getDouble(8)));
-                    jTextField_Confirmado.setText(rs.getString(9));
+                    registros[0] = rs.getString("cod");
+                    registros[1] = rs.getString("fecl");
+                    registros[2] = rs.getString("fecs");
+                    registros[3] = rs.getString("tip");
+                    registros[4] = String.valueOf(rs.getDouble("cos"));
+                    registros[5] = rs.getString("lle");
+                    numeroReserva = rs.getInt("num");
+                    jTextField_total.setText(String.valueOf(rs.getDouble("val")));
+                    jTextField_abono.setText(String.valueOf(rs.getDouble("abo")));
+                    jTextField_Confirmado.setText(rs.getString("con"));
                     modeloTabla.addRow(registros);
                 }
                 jTable_Reservas.setModel(modeloTabla);
@@ -201,7 +201,7 @@ public class VerReservasCliente extends javax.swing.JDialog {
     }
 
     public void crearFactura() {
-
+        
     }
 
     public void añadirHabitacion() {
@@ -209,16 +209,17 @@ public class VerReservasCliente extends javax.swing.JDialog {
         h.setVisible(true);
         if (!h.isShowing() && h.codigo != null) {
             String cod = h.codigo;
-            String fecha = h.fec;
-            Calendar c = Calendar.getInstance();
-            String sql = "insert into detalle_reserva (num_res_per,cod_hab_res,fec_res_hab) values(?,?,?)";
+            String fechaL = h.fecIni;
+            String fechaS = h.fecFin;
+            String sql = "insert into detalle_reserva (num_res_per,cod_hab_res,fec_lle,fec_sal) values(?,?,?,?)";
             ConexionHotel cc = new ConexionHotel();
             Connection cn = cc.conectar();
             try {
                 PreparedStatement psd = cn.prepareStatement(sql);
                 psd.setInt(1, numeroReserva);
                 psd.setString(2, cod);
-                psd.setString(3, fecha);
+                psd.setString(3, fechaL);
+                psd.setString(4, fechaS);
                 int n = psd.executeUpdate();
                 if (n > 0) {
                     JOptionPane.showMessageDialog(null, "Operación realizada correctamente");

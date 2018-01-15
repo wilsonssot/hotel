@@ -75,7 +75,15 @@ public class Reservar extends javax.swing.JDialog {
 
                 }
             } else {
-                realizarReserva();
+                int opcion = JOptionPane.showConfirmDialog(null, "¿Desea generar reserva?", "Datos correctos", JOptionPane.YES_OPTION);
+                if (opcion == 0) {
+                    realizarReserva();
+                }else{
+                    jTextField_ApeCli.setText("");
+                    jTextField_NomCli.setText("");
+                    jTextField_CedCli.setText("");
+                }
+
             }
         }
     }
@@ -97,7 +105,7 @@ public class Reservar extends javax.swing.JDialog {
                         codigo = affectedRows;
                         JOptionPane.showMessageDialog(null, "Operación realizada correctamente");
                         this.dispose();
-                        new VerReservasCliente(null, true, jTextField_CedCli.getText(),codigo).setVisible(true);
+                        new VerReservasCliente(null, true, jTextField_CedCli.getText(), codigo).setVisible(true);
                     } else {
                         JOptionPane.showMessageDialog(null, "No se ha podido obtener id");
                     }

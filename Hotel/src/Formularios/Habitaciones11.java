@@ -12,8 +12,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
@@ -21,7 +24,7 @@ import javax.swing.table.TableColumnModel;
  *
  * @author USUARIO
  */
-public class Habitaciones extends javax.swing.JDialog {
+public class Habitaciones11 extends javax.swing.JDialog {
 
     DefaultTableModel modeloTabla;
     TableColumnModel modeloColumna;
@@ -29,7 +32,9 @@ public class Habitaciones extends javax.swing.JDialog {
     /**
      * Creates new form Habitaciones
      */
-    public Habitaciones(java.awt.Frame parent, boolean modal) {
+    String cod;
+
+    public Habitaciones11(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
         llenarTabla();
@@ -201,14 +206,17 @@ public class Habitaciones extends javax.swing.JDialog {
             JOptionPane.showMessageDialog(null, "Ocurrió un error al recuperar datos de la base \n" + ex);
         }
     }
-
-
     
-
-    
-    
-    public void reservar(){
-        String sql = "insert into cabecera_reserva (ced_rec_res,ced_cli_res) values(?,?)";
+    public void setearCodigo() {
+        jTable_Habitaciones.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (jTable_Habitaciones.getSelectedRow() != -1) {
+                    int fila = jTable_Habitaciones.getSelectedRow();
+                    cod = (jTable_Habitaciones.getValueAt(fila, 0).toString());
+                }
+            }
+        });
     }
 
     /**
@@ -280,7 +288,7 @@ public class Habitaciones extends javax.swing.JDialog {
             }
         });
 
-        jButton1.setText("Ver Factura");
+        jButton1.setText("Escoger");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
@@ -294,16 +302,14 @@ public class Habitaciones extends javax.swing.JDialog {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(jToggleButton_Ocupadas, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(jToggleButton_Reservadas)
                         .addGap(18, 18, 18)
                         .addComponent(jToggleButton_Libres, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(73, 73, 73)
                         .addComponent(jButton1)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -318,7 +324,7 @@ public class Habitaciones extends javax.swing.JDialog {
                     .addComponent(jButton1))
                 .addGap(18, 18, 18)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         jScrollPane1.setViewportView(jPanel1);
@@ -378,6 +384,7 @@ public class Habitaciones extends javax.swing.JDialog {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
@@ -397,20 +404,21 @@ public class Habitaciones extends javax.swing.JDialog {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Habitaciones.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Habitaciones11.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Habitaciones.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Habitaciones11.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Habitaciones.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Habitaciones11.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Habitaciones.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Habitaciones11.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the dialog */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                Habitaciones dialog = new Habitaciones(new javax.swing.JFrame(), true);
+                Habitaciones11 dialog = new Habitaciones11(new javax.swing.JFrame(), true);
                 dialog.addWindowListener(new java.awt.event.WindowAdapter() {
                     @Override
                     public void windowClosing(java.awt.event.WindowEvent e) {

@@ -86,7 +86,7 @@ public class Prestar extends javax.swing.JDialog {
     public String añadirHabitacion() {
         Habitaciones1 h = new Habitaciones1(null, true);
         h.setVisible(true);
-        h.fecha.setEnabled(false);
+        h.fechaLle.setEnabled(false);
         String codigo = "";
         if (!h.isShowing() && h.codigo != null) {
             codigo = h.codigo;

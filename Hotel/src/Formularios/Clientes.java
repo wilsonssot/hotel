@@ -671,7 +671,7 @@ public class Clientes extends javax.swing.JDialog {
             }
 
         } else {
-            JOptionPane.showMessageDialog(null, "Cargue un cliente");
+            JOptionPane.showMessageDialog(null, "El cliente no tiene reservas");
         }
     }
     public void validarSoloLetrasSoloNumerosBuscar(KeyEvent evt) {
