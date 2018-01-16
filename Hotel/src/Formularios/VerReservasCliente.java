@@ -13,7 +13,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
@@ -84,14 +88,17 @@ public class VerReservasCliente extends javax.swing.JDialog {
     }
 
     public void llenarTabla() {
-        String[] titulos = {"HABITACIÓN", "FECHA LLEGADA","FECHA SALIDA", "TIPO", "COSTO", "LLEGÓ"};
+        String[] titulos = {"HABITACIÓN", "FECHA LLEGADA", "FECHA SALIDA", "TIPO", "COSTO", "LLEGÓ"};
         String[] registros = new String[6];
         jTable_Reservas.getTableHeader().setReorderingAllowed(false);
         jTable_Reservas.getTableHeader().setResizingAllowed(false);
         modeloTabla = new DefaultTableModel(null, titulos) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                if (column == 0 || column == 3 || column == 4 || column == 5) {
+                    return false;
+                }
+                return true;
             }
         };
         int num = 0;
@@ -100,7 +107,7 @@ public class VerReservasCliente extends javax.swing.JDialog {
         String sql1 = "select count(*) "
                 + "from detalle_reserva "
                 + "where fec_lle>sysdate "
-                + "and num_res_per = "+ numeroReserva;
+                + "and num_res_per = " + numeroReserva;
 
         String sql = "select h.cod_hab cod,d.fec_lle fecl,d.fec_sal fecs,t.nom_tip tip,t.cos_hab cos,d.lle_cli lle,c.num_res num,c.val_tot_res val, c.abono abo, c.confirmado con "
                 + "from habitaciones h,detalle_reserva d,tipos_habitacion t,cabecera_reserva c,clientes cli "
@@ -115,18 +122,25 @@ public class VerReservasCliente extends javax.swing.JDialog {
                 + "from cabecera_reserva c,clientes cli "
                 + "where cli.ced_cli=c.ced_cli_res "
                 + "and num_res=" + numeroReserva;
+        
+        String dev = "select SUM(val_dev) suma from devoluciones where num_res_per="+numeroReserva;
         try {
             Statement st = cn.createStatement();
             ResultSet rs1 = st.executeQuery(sql1);
             while (rs1.next()) {
                 num = rs1.getInt(1);
             }
+            ResultSet devol = st.executeQuery(dev);
+            while(devol.next()){
+                jTextField_Dev.setText(devol.getString("suma"));
+            }
             if (num > 0) {
                 ResultSet rs = st.executeQuery(sql);
+                SimpleDateFormat formateador = new SimpleDateFormat("dd/MM/yyyy");
                 while (rs.next()) {
                     registros[0] = rs.getString("cod");
-                    registros[1] = rs.getString("fecl");
-                    registros[2] = rs.getString("fecs");
+                    registros[1] = formateador.format(rs.getDate("fecl"));
+                    registros[2] = formateador.format(rs.getDate("fecs"));
                     registros[3] = rs.getString("tip");
                     registros[4] = String.valueOf(rs.getDouble("cos"));
                     registros[5] = rs.getString("lle");
@@ -154,6 +168,53 @@ public class VerReservasCliente extends javax.swing.JDialog {
             JOptionPane.showMessageDialog(null, "Ocurrió un error al recuperar datos de la base \n" + ex);
         }
 
+        modeloTabla.addTableModelListener(new TableModelListener() {
+            @Override
+            public void tableChanged(TableModelEvent e) {
+                if (e.getType() == TableModelEvent.UPDATE) {
+                    int columna = e.getColumn();
+                    int fila = e.getFirstRow();
+                    if (ActTabla(columna, fila)) {
+                        JOptionPane.showMessageDialog(null, "Actualizacion correcta");
+                    }
+                    llenarTabla();
+                }
+            }
+        });
+
+    }
+
+    public boolean ActTabla(int col, int fil) {
+        boolean aux = false;
+        String sql = "";
+        ConexionHotel cc = new ConexionHotel();
+        Connection cn = cc.conectar();
+        if (col == 1) {
+            sql = "update detalle_reserva "
+                    + "set fec_lle ='" + jTable_Reservas.getValueAt(fil, 1).toString() + "' "
+                    + "where num_res_per=" + numeroReserva;
+            aux = true;
+        } else if (col == 2) {
+            sql = "update detalle_reserva "
+                    + "set fec_sal ='" + jTable_Reservas.getValueAt(fil, 2).toString() + "' "
+                    + "where num_res_per=" + numeroReserva;
+            aux = true;
+        }
+
+        if (aux) {
+
+            try {
+                PreparedStatement psd = cn.prepareStatement(sql);
+                int n = psd.executeUpdate();
+                if (n > 0) {
+                    return true;
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(null, ex);
+                return false;
+            }
+        }
+        return false;
     }
 
     public void cargarDatosCliente(String Dato) {
@@ -189,8 +250,8 @@ public class VerReservasCliente extends javax.swing.JDialog {
                 PreparedStatement psd = cn.prepareStatement(sql);
                 int n = psd.executeUpdate();
                 if (n > 0) {
-                    JOptionPane.showMessageDialog(null, "Operación realizada correctamente");
-                    crearFactura();
+                   // JOptionPane.showMessageDialog(null, "Operación realizada correctamente");
+                    realizarPrestamo();
                 }
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, ex);
@@ -200,8 +261,44 @@ public class VerReservasCliente extends javax.swing.JDialog {
 
     }
 
-    public void crearFactura() {
-        
+    public void realizarPrestamo() {
+        if (!jTextField_NomCli.getText().isEmpty()) {
+            ConexionHotel cc = new ConexionHotel();
+            Connection cn = cc.conectar();
+            String cod = jTable_Reservas.getValueAt(jTable_Reservas.getSelectedRow(), 0).toString();
+            Double cos = 0.0;
+            String sql = "insert into cabecera_factura (FEC_FAC,CED_REC_FAC,CED_CLI_F,COD_HAB_FAC,TOTAL) values(?,?,?,?,?)";
+            String costo = "select cos_hab from tipos_habitacion "
+                    + "where cod_tip=(select tip_hab_per "
+                    + "             from habitaciones "
+                    + "             where cod_hab='" + cod + "') ";
+            try {
+                Statement st = cn.createStatement();
+                ResultSet rs = st.executeQuery(costo);
+                while (rs.next()) {
+                    cos = (rs.getDouble(1) / 2);
+                }
+                PreparedStatement psd = cn.prepareStatement(sql);
+                SimpleDateFormat formateador = new SimpleDateFormat("dd/MM/yy");
+                Calendar c = Calendar.getInstance();
+
+                psd.setString(1, formateador.format(c.getTime()));
+                psd.setString(2, Principal.cedRec);
+                psd.setString(3, jTextField_CedCli.getText());
+                psd.setString(4, cod);
+                psd.setDouble(5, cos);
+                int n = psd.executeUpdate();
+                if (n > 0) {
+                    JOptionPane.showMessageDialog(null, "Operación realizada correctamente");
+                    this.dispose();
+                    //new VerReservasCliente(null, true, jTextField_CedCli.getText()).setVisible(true);
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(null, ex);
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Cargue un cliente");
+        }
     }
 
     public void añadirHabitacion() {
@@ -302,6 +399,8 @@ public class VerReservasCliente extends javax.swing.JDialog {
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jButton_Volver = new javax.swing.JButton();
+        jLabel7 = new javax.swing.JLabel();
+        jTextField_Dev = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -455,6 +554,8 @@ public class VerReservasCliente extends javax.swing.JDialog {
             }
         });
 
+        jLabel7.setText("A devolver:");
+
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
@@ -464,7 +565,11 @@ public class VerReservasCliente extends javax.swing.JDialog {
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane2)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                        .addComponent(jButton_Volver)
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jButton_Volver, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(18, 18, 18)
+                        .addComponent(jTextField_Dev, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -489,7 +594,9 @@ public class VerReservasCliente extends javax.swing.JDialog {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jTextField_abono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel5))
+                    .addComponent(jLabel5)
+                    .addComponent(jLabel7)
+                    .addComponent(jTextField_Dev, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jTextField_Confirmado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -623,6 +730,7 @@ public class VerReservasCliente extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
@@ -633,6 +741,7 @@ public class VerReservasCliente extends javax.swing.JDialog {
     private javax.swing.JTextField jTextField_ApeCli;
     private javax.swing.JTextField jTextField_CedCli;
     private javax.swing.JTextField jTextField_Confirmado;
+    private javax.swing.JTextField jTextField_Dev;
     private javax.swing.JTextField jTextField_NomCli;
     private javax.swing.JTextField jTextField_abonar;
     private javax.swing.JTextField jTextField_abono;

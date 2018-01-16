@@ -10,6 +10,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -202,13 +204,33 @@ public class Habitaciones extends javax.swing.JDialog {
         }
     }
 
-
-    
-
-    
-    
-    public void reservar(){
-        String sql = "insert into cabecera_reserva (ced_rec_res,ced_cli_res) values(?,?)";
+    public void verFactura() {
+        if(jTable_Habitaciones.getSelectedRow()>-1){
+            int fila = jTable_Habitaciones.getSelectedRow();
+            String cod = jTable_Habitaciones.getValueAt(fila, 0).toString();
+            String sql="select * from cabecera_factura "
+                    + "where cod_hab_fac='"+cod+"' "
+                    + "and TO_CHAR(fec_fac,'DD/MM/YYYY')=TO_CHAR(SYSDATE,'DD/MM/YYYY')";
+            ConexionHotel cc = new ConexionHotel();
+            Connection cn = cc.conectar();
+            try {
+                int numFac=0;
+                Statement st = cn.createStatement();
+                ResultSet rs = st.executeQuery(sql);
+                while(rs.next()){
+                    numFac = rs.getInt("num_fac");
+                }
+                //System.out.println(numFac+" "+cod);
+                if(numFac>0){
+                    new Venta1(null, true, numFac).setVisible(true);
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(null, "Fallo recibiendo datos de la base1\n"+ex);
+            }
+        }else{
+            JOptionPane.showMessageDialog(null, "Escoja una habitación");
+        }
+        
     }
 
     /**
@@ -378,6 +400,7 @@ public class Habitaciones extends javax.swing.JDialog {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+        verFactura();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
